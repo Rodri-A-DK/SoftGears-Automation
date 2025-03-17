@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
 import { Sun, Moon, Globe, Menu, X, MessageCircle, Clock, Users, MessageSquare } from 'lucide-react';
 import "./index.css";
 
 // Componente WhatsApp
-const WhatsAppButton = ({ phoneNumber = "+543816677869", message = "Hola! Tengo una consulta" }) => {
+const WhatsAppButton = ({ phoneNumber = "+543816677869", message = "" }) => {
   const getWhatsAppLink = () => {
     const encodedMessage = encodeURIComponent(message);
     return `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
@@ -34,15 +34,19 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("es");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [visible, setVisible] = useState(true); // Header is visible by default
+  const timeoutId = useRef(null); // useRef to hold the timeout ID
+
   const services = [
     {
       title: language === "es" ? "Aplicaciones Web" : "Web Applications",
       description: language === "es"
         ? "Automatización de software para aplicaciones web con herramientas y marcos personalizados. Diseñamos soluciones a medida para tus necesidades específicas."
         : "Automation software for web applications with custom tools and frameworks. We design solutions tailored to your specific needs.",
-      features: language === "es" 
+      features: language === "es"
         ? ["Pruebas E2E", "Pruebas de Integración", "Pruebas de UI/UX", "Pruebas de Rendimiento"]
-        : ["E2E Testing", "Integration Testing", "UI/UX Testing", "Performance Testing"],
+        : ["E2E Testing", "UI/UX Testing", "Performance Testing"],
       image: "/diseño-de-interfaces-web.jpg"
     },
     {
@@ -76,7 +80,6 @@ function App() {
       image: "/backend.png"
     }
   ];
-  
 
   const stats = [
     {
@@ -102,7 +105,7 @@ function App() {
       name: language === "es" ? "María García" : "Mary Garcia",
       role: language === "es" ? "Directora de TI" : "IT Director",
       company: "TechCorp",
-      text: language === "es" 
+      text: language === "es"
         ? "SoftGears ha transformado completamente nuestro proceso de pruebas automatizadas."
         : "SoftGears has completely transformed our automated testing process.",
       image: "/api/placeholder/48/48"
@@ -118,151 +121,197 @@ function App() {
     }
   ];
 
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'dark') {
+      setIsDarkMode(true);
+    } else if (storedTheme === 'light') {
+      setIsDarkMode(false);
+    } // else leave as default (which is false/light)
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+  };
+
   const toggleLanguage = () => setLanguage(language === "es" ? "en" : "es");
 
-  return (
-    <div className={`min-h-screen ${isDarkMode ? "dark bg-gray-900 text-white" : "bg-white text-gray-900"}`}>
-    {/* Header */}
-    <header className="fixed w-full ">
-      <div className="container mx-auto px-4 lg:px-6">
-        <div className="flex items-center justify-between h-16 lg:h-20">
-         {/* Logo */}
-          <h1 className="text-2xl font-bold hover:text-red-500 transition-colors duration-300 backdrop-blur-sm z-auto">
-          <a href="#" className="focus:outline-none">
-           SoftGears Automation
-          </a>
-          </h1>
- 
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden p-2 rounded-lg dark:hover:bg-gray-800"
-          >
-            {isMenuOpen ? (
-              <X size={24} />
-            ) : (
-              <Menu size={24} />
-            )}
-          </button>
+  useEffect(() => {
+    let lastScrollY = window.pageYOffset;
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
-            <div className="flex space-x-8">
-              <a href="#services" className="font-medium hover:text-red-500 transition-colors duration-300">
+    const handleScroll = () => {
+      const currentScrollY = window.pageYOffset;
+
+      if (currentScrollY > lastScrollY && visible) { // Scrolling down and header is visible
+        setVisible(false);
+      } else if (currentScrollY < lastScrollY && !visible) { // Scrolling up and header is hidden
+        setVisible(true);
+      }
+
+      lastScrollY = currentScrollY; // Update the last scroll position
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [visible]);
+
+  return (
+    <div className={`min-h-screen ${isDarkMode ? "dark bg-gray-800 text-white" : "bg-white text-gray-900"}`}>
+      {/* Header */}
+      <header
+        className={`fixed top-0 w-full backdrop-blur-sm transition-transform duration-300 transform ${visible ? 'translate-y-0' : '-translate-y-full'}`}
+      >
+        <div className="container mx-auto px-4 lg:px-6">
+          <div className="flex items-center justify-between h-16 lg:h-20">
+            {/* Logo */}
+            <h1 className="text-2xl font-bold hover:text-red-500 transition-colors duration-300 backdrop-blur-sm z-auto">
+              <a href="#" className="focus:outline-none">
+                SoftGears Automation
+              </a>
+            </h1>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              {isMenuOpen ? (
+                <X size={24} className="text-gray-900 dark:text-white" />
+              ) : (
+                <Menu size={24} className="text-gray-900 dark:text-white" />
+              )}
+            </button>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-8">
+              <div className="flex space-x-8">
+                <a href="#services" className="font-medium hover:text-red-500 transition-colors duration-300 text-gray-900 dark:text-white">
+                  {language === "es" ? "Servicios" : "Services"}
+                </a>
+                <a href="#technologies" className="font-medium hover:text-red-500 transition-colors duration-300 text-gray-900 dark:text-white">
+                  {language === "es" ? "Tecnologías" : "Technologies"}
+                </a>
+                <a href="#contact" className="font-medium hover:text-red-500 transition-colors duration-300 text-gray-900 dark:text-white">
+                  {language === "es" ? "Contacto" : "Contact"}
+                </a>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={toggleLanguage}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300"
+                >
+                  <Globe className="text-red-500 w-5 h-5" />
+                  <span className="font-medium text-gray-900 dark:text-white">{language === "es" ? "EN" : "ES"}</span>
+                </button>
+
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300"
+                >
+                  {isDarkMode ? (
+                    <Sun className="text-yellow-400 w-5 h-5" />
+                  ) : (
+                    <Moon className="text-gray-600 w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </nav>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className={` backdrop-blur-sm  z-auto lg:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
+            <nav className="flex flex-col space-y-4 py-6 backdrop-blur-sm  z-auto">
+              <a
+                href="#services"
+                className="px-4 py-2 font-medium  dark:hover:bg-gray-800 rounded-lg transition-colors duration-300"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 {language === "es" ? "Servicios" : "Services"}
               </a>
-              <a href="#technologies" className="font-medium hover:text-red-500 transition-colors duration-300">
+              <a
+                href="#technologies"
+                className="px-4 py-2 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-300"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 {language === "es" ? "Tecnologías" : "Technologies"}
               </a>
-              <a href="#contact" className="font-medium hover:text-red-500 transition-colors duration-300">
+              <a
+                href="#contact"
+                className="px-4 py-2 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-300"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 {language === "es" ? "Contacto" : "Contact"}
               </a>
-            </div>
 
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={toggleLanguage}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg dark:bg-gray-800 dark:hover:bg-gray-700 transition-all duration-300"
-              >
-                <Globe className="text-red-500 w-5 h-5" />
-                <span className="font-medium">{language === "es" ? "EN" : "ES"}</span>
-              </button>
+              <div className="flex items-center space-x-4 px-4 pt-4 border-t dark:border-gray-700">
+                <button
+                  onClick={toggleLanguage}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg dark:bg-gray-800  dark:hover:bg-gray-700 transition-all duration-300"
+                >
+                  <Globe className="text-red-500 w-5 h-5" />
+                  <span className="font-medium">{language === "es" ? "EN" : "ES"}</span>
+                </button>
 
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-lg  dark:hover:bg-gray-800 transition-all duration-300"
-              >
-                {isDarkMode ? (
-                  <Sun className="text-yellow-400 w-5 h-5" />
-                ) : (
-                  <Moon className="text-gray-600 w-5 h-5" />
-                )}
-              </button>
-            </div>
-          </nav>
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-lg  dark:hover:bg-gray-900 transition-all duration-300"
+                >
+                  {isDarkMode ? (
+                    <Sun className="text-yellow-400 w-5 h-5" />
+                  ) : (
+                    <Moon className="text-gray-600 w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </nav>
+          </div>
         </div>
+      </header>
 
-        {/* Mobile Navigation */}
-        <div className={` backdrop-blur-sm  z-auto lg:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
-          <nav className="flex flex-col space-y-4 py-6 backdrop-blur-sm  z-auto">
-            <a
-              href="#services"
-              className="px-4 py-2 font-medium  dark:hover:bg-gray-800 rounded-lg transition-colors duration-300"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              {language === "es" ? "Servicios" : "Services"}
-            </a>
-            <a
-              href="#technologies"
-              className="px-4 py-2 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-300"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              {language === "es" ? "Tecnologías" : "Technologies"}
-            </a>
-            <a
-              href="#contact"
-              className="px-4 py-2 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-300"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              {language === "es" ? "Contacto" : "Contact"}
-            </a>
-            
-            <div className="flex items-center space-x-4 px-4 pt-4 border-t dark:border-gray-700">
-              <button
-                onClick={toggleLanguage}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg dark:bg-gray-800  dark:hover:bg-gray-700 transition-all duration-300"
-              >
-                <Globe className="text-red-500 w-5 h-5" />
-                <span className="font-medium">{language === "es" ? "EN" : "ES"}</span>
-              </button>
-
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-lg  dark:hover:bg-gray-900 transition-all duration-300"
-              >
-                {isDarkMode ? (
-                  <Sun className="text-yellow-400 w-5 h-5" />
-                ) : (
-                  <Moon className="text-gray-600 w-5 h-5" />
-                )}
-              </button>
-            </div>
-          </nav>
-        </div>
-      </div>
-    </header>
-
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 dark:from-gray-800 dark:to-gray-900">
+        {/* Hero Section */}
+        <section className="pt-32 pb-20 bg-white dark:bg-gray-900">
         <div className="container mx-auto text-center px-6">
           <h2 className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-purple-600">
             {language === "es" ? "Automatización de Software" : "Software Automation"}
           </h2>
-          <p className={`${isDarkMode ? "text-xl mb-12 max-w-3xl mx-auto dark bg-gray-900 text-white" : "text-xl mb-12 max-w-3xl mx-auto dark bg-white text-black"}`}>
+          <p className="text-xl mb-12 max-w-3xl mx-auto text-gray-900 dark:text-white">
             {language === "es"
               ? "Transformamos la calidad de tu software con soluciones de automatización innovadoras y personalizadas."
               : "We transform your software quality with innovative and customized automation solutions."}
           </p>
           <div className="flex justify-center space-x-6">
-            <button className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl ">
+            <a
+              href={`https://wa.me/+543816677869?text=${encodeURIComponent(language === 'es' ? 'Hola! Me gustaría obtener un presupuesto.' : 'Hello! I would like to get a quote.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl"
+            >
               {language === "es" ? "Obtener un presupuesto" : "Get a Quote"}
-            </button>
-            <button className="bg-gray-800 hover:bg-gray-900 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl ">
+            </a>
+            <a
+              href="#contact"
+              className="bg-gray-700 hover:bg-gray-800 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl"
+            >
               {language === "es" ? "Reservar una reunión" : "Schedule a Meeting"}
-            </button>
+            </a>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 dark:bg-gray-800">
+      <section className="py-16 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <h3 className="text-4xl font-bold text-red-500 mb-2">{stat.number}</h3>
-                <p className={`${isDarkMode ? "text-xl mb-12 max-w-3xl mx-auto dark bg-gray-900 text-white" : "text-xl mb-12 max-w-3xl mx-auto dark bg-white text-black"}`}>{stat.text}</p>
+                <p className="text-xl max-w-3xl mx-auto text-gray-900 dark:text-white">{stat.text}</p>
               </div>
             ))}
           </div>
@@ -270,170 +319,165 @@ function App() {
       </section>
 
 
-<WhatsAppButton 
+      <WhatsAppButton
       />
 
-    {/* Services Section */}
-<section id="services" className="py-20">
-  <div className="container mx-auto px-6">
-    <h3 className="text-3xl font-bold text-center mb-8">
-      {language === "es" ? "Nuestros Servicios" : "Our Services"}
-    </h3>
+      {/* Services Section */}
+      <section id="services" className="py-20 bg-white dark:bg-gray-900">
+        <div className="container mx-auto px-6">
+          <h3 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+            {language === "es" ? "Nuestros Servicios" : "Our Services"}
+          </h3>
 
-    {/* Contenedor scrollable en móviles */}
-    <div className="w-full overflow-x-auto pb-4">
-      <div className="flex gap-3 sm:gap-4 min-w-max px-4 snap-x snap-mandatory overflow-x-auto flex-nowrap sm:justify-center">
-        {services.map((service, index) => (
-          <button
-            key={index}
-            onClick={() => setActiveService(index)}
-            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base whitespace-nowrap transition-all duration-300 snap-center ${
-              activeService === index
-                ? "bg-red-500 text-black"
-                : "text-black bg-gray-200 hover:bg-red-400  items-center "
-            }`}
-            style={{ minWidth: "120px" }} // Asegura que los botones tengan un tamaño mínimo
-          >
-            {service.title}
-          </button>
-        ))}
-      </div>
-    </div>
-
-    {/* Contenedor de detalles del servicio */}
-    <div className={`${isDarkMode ? "bg-gray-800 p-8 rounded-xl shadow-lg" : " p-8 rounded-xl shadow-lg"}`}>
-      <div className="grid md:grid-cols-2 gap-8 items-center">
-        {/* Texto y características */}
-        <div className="space-y-6">
-          <h4 className="text-2xl font-bold">{services[activeService].title}</h4>
-          <p
-            className={`${
-              isDarkMode
-                ? "text-xl mb-12 max-w-3xl mx-auto dark  text-white"
-                : "text-xl mb-12 max-w-3xl mx-auto  text-gray-900"
-            }`}
-          >
-            {services[activeService].description}
-          </p>
-          <ul className="space-y-3">
-            {services[activeService].features.map((feature, index) => (
-              <li key={index} className="flex items-center space-x-3">
-                <svg
-                  className="h-5 w-5 text-red-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          {/* Contenedor scrollable en móviles */}
+          <div className="w-full overflow-x-auto pb-4">
+            <div className="flex gap-3 sm:gap-4 min-w-max px-4 snap-x snap-mandatory overflow-x-auto flex-nowrap sm:justify-center">
+              {services.map((service, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveService(index)}
+                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base whitespace-nowrap transition-all duration-300 snap-center ${activeService === index
+                    ? "bg-red-500 text-black"
+                    : "text-black bg-gray-200 hover:bg-red-400 dark:bg-gray-700 dark:text-white dark:hover:bg-red-400"
+                    }`}
+                  style={{ minWidth: "120px" }} // Asegura que los botones tengan un tamaño mínimo
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+                  {service.title}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        {/* Imagen */}
-        <div className="flex justify-center">
-          <img
-            src={services[activeService].image}
-            className="rounded-lg shadow-lg"
-            alt={services[activeService].title}
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+          {/* Contenedor de detalles del servicio */}
+          <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-xl shadow-lg">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              {/* Texto y características */}
+              <div className="space-y-6">
+                <h4 className="text-2xl font-bold text-gray-900 dark:text-white">{services[activeService].title}</h4>
+                <p className="text-xl mb-12 max-w-3xl mx-auto text-gray-900 dark:text-white">
+                  {services[activeService].description}
+                </p>
+                <ul className="space-y-3">
+                  {services[activeService].features.map((feature, index) => (
+                    <li key={index} className="flex items-center space-x-3 text-gray-900 dark:text-white">
+                      <svg
+                        className="h-5 w-5 text-red-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
+              {/* Imagen */}
+              <div className="flex justify-center">
+                <img
+                  src={services[activeService].image}
+                  className="rounded-lg shadow-lg"
+                  alt={services[activeService].title}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Technologies Section */}
-      <section id="technologies" className="py-20 dark:bg-gray-500">
+      <section id="technologies" className="py-20 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-6">
-          <h3 className="text-3xl font-bold text-center mb-8">
+          <h3 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
             {language === "es" ? "Tecnologías que utilizamos" : "Technologies We Use"}
           </h3>
-          <p className={`${isDarkMode ? "text-center mb-12 max-w-3xl mx-auto dark bg-gray-900 text-white" : "text-center mb-12 max-w-3xl mx-auto dark bg-white text-black"}`}>
+          <p className="text-center mb-12 max-w-3xl mx-auto text-gray-900 dark:text-white">
             {language === "es"
               ? "Trabajamos con las últimas tecnologías para garantizar soluciones robustas y escalables."
               : "We work with the latest technologies to ensure robust and scalable solutions."}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 items-center">
-  <div className="bg-white dark:bg-gray-700 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-    <img
-      src="/662d434863c5da304066ca28_IcRKaNAHLXIMk9imJ-m2euZx0ck0JTkWIYFZm6pa4bI.webp"
-      className="h-56 w-auto mx-auto"
-    />
-  </div>
-  <div className="bg-white dark:bg-gray-700 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-    <img
-      src="/image.png"
-      className="h-56 w-auto mx-auto"
-    />
-  </div>
-  <div className="bg-white dark:bg-gray-700 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-    <img
-    src="/whatsapp-ai-chatbot-04.jpg"
-    
-      className="h-38 w-auto mx-auto"
-    />
-  </div>
-  <div className="bg-white dark:bg-gray-700 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-    <img
-      src="/673f2a3b44c1ed4901bb43bb_6386328bea96dffacc89946b_d1.webp"
-      className="h-38 w-auto mx-auto"
-    />
-  </div>
-</div>
+            <div className="bg-white dark:bg-gray-900 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <img
+                src="/662d434863c5da304066ca28_IcRKaNAHLXIMk9imJ-m2euZx0ck0JTkWIYFZm6pa4bI.webp"
+                className="h-64 w-auto mx-auto"
+                alt="Tecnología 1"
+              />
+            </div>
+            <div className="bg-white dark:bg-gray-900 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <img
+                src="/image.png"
+                className="h-64 w-auto mx-auto"
+                alt="Tecnología 2"
+              />
+            </div>
+            <div className="bg-white dark:bg-gray-900 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <img
+                src="/whatsapp-ai-chatbot-04.jpg"
+                className="h-64 w-auto mx-auto"
+                alt="Tecnología 3"
+              />
+            </div>
+            <div className="bg-white dark:bg-gray-900 p-2 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <img
+                src="/673f2a3b44c1ed4901bb43bb_6386328bea96dffacc89946b_d1.webp"
+                className="h-64 w-auto mx-auto"
+                alt="Tecnología 4"
+              />
+            </div>
+          </div>
 
         </div>
       </section>
 
-
       {/* Contact Section */}
-      <section id="contact" className="py-20 dark:bg-gray-800">
+      <section id="contact" className="py-20 bg-gray-100 dark:bg-gray-900">
         <div className="container mx-auto px-6 text">
           <div className="max-w-4xl mx-auto">
-          <h3 className="text-3xl font-bold text-center mb-8">
+            <h3 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
               {language === "es" ? "Contáctanos" : "Contact Us"}
             </h3>
             <div className="grid md:grid-cols-2 gap-12">
+              
               {/* Contact Form */}
-              <div className={`${isDarkMode ? "bg-gray-800 p-8 rounded-xl shadow-lg" : "bg-gray-200 p-8 rounded-xl shadow-lg"}`}>
-                <h4 className={`${isDarkMode ? "text-xl mb-12 max-w-3xl mx-auto dark text-white" : "text-xl mb-12 max-w-3xl mx-auto dark text-black"}`}>
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">
+                <h4 className="text-xl mb-12 max-w-3xl mx-auto text-gray-900 dark:text-white">
                   {language === "es" ? "Envíanos un mensaje" : "Send us a message"}
                 </h4>
                 <form className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
                       {language === "es" ? "Nombre" : "Name"}
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700 text-black"
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white"
                       placeholder={language === "es" ? "Tu nombre" : "Your name"}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
                       {language === "es" ? "Correo electrónico" : "Email"}
                     </label>
                     <input
                       type="email"
-                      className="w-full px-4 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700 text-black"
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:bg-gray-900 dark:border-gray-700 text-gray-900 dark:text-white"
                       placeholder={language === "es" ? "Tu correo" : "Your email"}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
                       {language === "es" ? "Mensaje" : "Message"}
                     </label>
                     <textarea
-                      className="w-full px-4 py-2 rounded-lg border dark:bg-gray-800 dark:border-gray-700 h-32 text-black"
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:bg-gray-900 dark:border-gray-700 h-32 text-gray-900 dark:text-white"
                       placeholder={language === "es" ? "Tu mensaje" : "Your message"}
                     ></textarea>
                   </div>
@@ -446,39 +490,43 @@ function App() {
                 </form>
               </div>
 
-              {/* Contact Information */}
-              <div className="space-y-8">
-              <div className={`${isDarkMode ? "bg-gray-800 p-8 rounded-xl shadow-lg" : "bg-gray-200 p-8 rounded-xl shadow-lg"}`}>
-                <h4 className={`${isDarkMode ? "text-xl mb-12 max-w-3xl mx-auto dark text-white" : "text-xl mb-12 max-w-3xl mx-auto dark text-black"}`}>
+                  {/* Contact Information */}
+                  <div className="space-y-8">
+                <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">
+                  <h4 className="text-xl mb-12 max-w-3xl mx-auto text-gray-900 dark:text-white">
                     {language === "es" ? "Información de contacto" : "Contact information"}
                   </h4>
                   <div className="space-y-4">
                     <div className="flex items-center space-x-4">
                       <FaPhone className="text-red-500 text-xl" />
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-gray-900 dark:text-white">
                           {language === "es" ? "Teléfono" : "Phone"}
                         </p>
-                        <p className={`${isDarkMode ? "   mx-auto dark  text-white" : "  mx-auto dark  text-black"}`}>+543816677869</p>
+                        <a href="tel:+543816677869" className="text-gray-900 dark:text-white dark:hover:text-red-500 hover:text-red-500 transition-colors duration-300">
+                          +543816677869
+                        </a>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       <FaEnvelope className="text-red-500 text-xl" />
                       <div>
-                        <p className="font-medium">Email</p>
-                        <p className={`${isDarkMode ? "mx-auto dark  text-white" : "mx-auto dark  text-black"}`}>rodrieldkii@gmail.com</p>
+                        <p className="font-medium text-gray-900 dark:text-white">Email</p>
+                        <a href="mailto:mandioca.dev@gmail.com" className="text-gray-900 dark:text-white dark:hover:text-red-500 hover:text-red-500 transition-colors duration-300">
+                          mandioca.dev@gmail.com
+                        </a>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       <FaMapMarkerAlt className="text-red-500 text-xl" />
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-gray-900 dark:text-white">
                           {language === "es" ? "Dirección" : "Address"}
                         </p>
-                        <p className={`${isDarkMode ? "mx-auto dark  text-white" : "mx-auto dark text-black"}`}>
+                        <p className="text-gray-900 dark:text-white">
                           {language === "es"
-                            ? "Calle Principal 123, Ciudad, País"
-                            : "123 Main Street, City, Country"}
+                            ? "Tucuman, Argentina"
+                            : "Tucuman, Argentina"}
                         </p>
                       </div>
                     </div>
@@ -486,29 +534,29 @@ function App() {
                 </div>
 
                 {/* Social Media */}
-                <div className={`${isDarkMode ? "bg-gray-800 p-8 rounded-xl shadow-lg" : "bg-gray-200 p-8 rounded-xl shadow-lg"}`}>
-                
-                  <h4 className="text-xl font-bold mb-6">
+                <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">
+
+                  <h4 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
                     {language === "es" ? "Síguenos" : "Follow us"}
                   </h4>
                   <div className="flex space-x-4">
                     <a
-                      href="#"
-                      className=" dark:bg-gray-800 p-3 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-300"
+                    
+                      className="bg-gray-800 dark:bg-gray-200 p-3 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-300"
                     >
-                      <FaGithub className="text-xl" />
+                      <FaGithub className="text-xl text-white dark:text-black" />
                     </a>
                     <a
-                      href="#"
-                      className=" dark:bg-gray-800 p-3 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-300"
+                      href="https://www.linkedin.com/in/rodrigo-abreg%C3%BA-4b654925a/"
+                      className="bg-gray-800 dark:bg-gray-200 p-3 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-300"
                     >
-                      <FaLinkedin className="text-xl" />
+                      <FaLinkedin className="text-xl text-white dark:text-black" />
                     </a>
                     <a
-                      href="#"
-                      className=" dark:bg-gray-800 p-3 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-300"
+                     
+                      className="bg-gray-800 dark:bg-gray-200 p-3 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-300"
                     >
-                      <FaTwitter className="text-xl" />
+                      <FaTwitter className="text-xl text-white dark:text-black" />
                     </a>
                   </div>
                 </div>
@@ -574,14 +622,7 @@ function App() {
                   : "Subscribe to receive news and updates."}
               </p>
               <div className="flex">
-                <input
-                  type="email"
-                  className="flex-1 px-4 py-2 rounded-l-lg bg-gray-800 border-gray-700"
-                  placeholder={language === "es" ? "Tu correo" : "Your email"}
-                />
-                <button className="px-4 py-2 bg-red-500 rounded-r-lg hover:bg-red-600 transition-colors duration-300">
-                  {language === "es" ? "Enviar" : "Submit"}
-                </button>
+
               </div>
             </div>
           </div>
